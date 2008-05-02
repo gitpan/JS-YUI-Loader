@@ -9,7 +9,7 @@ JS::YUI::Loader - Load (and cache) the Yahoo YUI framework
 
 =head1 VERSION
 
-Version 0.03
+Version 0.04
 
 =head1 SYNOPSIS
 
@@ -52,7 +52,7 @@ or you can cache assets locally or serve them from an exploded yui_x.x.x.zip dir
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use constant LATEST_YUI_VERSION => "2.5.1";
 
@@ -201,11 +201,37 @@ You can return to the loader by using the special ->then method:
 
 =cut
 
+=head2 filter_min 
+
+Turn on the -min filter for all included components
+
+For example:
+
+    connection-min.js
+    yuilogger-min.js
+    base-min.css
+    fonts-min.css
+
+=cut
+
 sub filter_min {
     my $self = shift;
     return $self->filter("min");
     return $self;
 }
+
+=head2 filter_debug 
+
+Turn on the -debug filter for all included components
+
+For example:
+
+    connection-debug.js
+    yuilogger-debug.js
+    base-debug.css
+    fonts-debug.css
+
+=cut
 
 sub filter_debug {
     my $self = shift;
@@ -213,11 +239,32 @@ sub filter_debug {
     return $self;
 }
 
+=head2 no_filter 
+
+Disable filtering of included components
+
+For example:
+
+    connection.js
+    yuilogger.js
+    base.css
+    fonts.css
+
+=cut
+
 sub no_filter {
     my $self = shift;
     $self->filter("");
     return $self;
 }
+
+=head2 uri( <component> )
+
+Attempt to fetch a L<URI> for <component> using the current filter setting of the loader (-min, -debug, etc.)
+
+If the loader has a cache, then this method will try to fetch from the cache. Otherwise it will use the source.
+
+=cut
 
 sub uri {
     my $self = shift;
@@ -225,11 +272,25 @@ sub uri {
     return $self->source_uri(@_);
 }
 
+=head2 file( <component> )
+
+Attempt to fetch a L<Path::Class::File> for <component> using the current filter setting of the loader (-min, -debug, etc.)
+
+If the loader has a cache, then this method will try to fetch from the cache. Otherwise it will use the source.
+
+=cut
+
 sub file {
     my $self = shift;
     return $self->cache_file(@_) if $self->cache;
     return $self->source_file(@_);
 }
+
+=head2 cache_uri( <component> )
+
+Attempt to fetch a L<URI> for <component> using the current filter setting of the loader (-min, -debug, etc.) from the cache
+
+=cut
 
 sub cache_uri {
     my $self = shift;
@@ -237,11 +298,23 @@ sub cache_uri {
     return $self->cache->uri([ $name => $self->filter ]) || croak "Unable to get uri for $name from cache ", $self->cache;
 }
 
+=head2 cache_file( <component> )
+
+Attempt to fetch a L<Path::Class::File> for <component> using the current filter setting of the loader (-min, -debug, etc.) from the cache
+
+=cut
+
 sub cache_file {
     my $self = shift;
     my $name = shift;
     return $self->cache->file([ $name => $self->filter ]) || croak "Unable to get file for $name from cache ", $self->cache;
 }
+
+=head2 source_uri( <component> )
+
+Attempt to fetch a L<URI> for <component> using the current filter setting of the loader (-min, -debug, etc.) from the source
+
+=cut
 
 sub source_uri {
     my $self = shift;
@@ -249,11 +322,23 @@ sub source_uri {
     return $self->source->uri([ $name => $self->filter ]) || croak "Unable to get uri for $name from source ", $self->source;
 }
 
+=head2 source_file( <component> )
+
+Attempt to fetch a L<Path::Class::File> for <component> using the current filter setting of the loader (-min, -debug, etc.) from the source
+
+=cut
+
 sub source_file {
     my $self = shift;
     my $name = shift;
     return $self->source->file([ $name => $self->filter ]) || croak "Unable to get file for $name from source ", $self->source;
 }
+
+=head2 item( <component> )
+
+Return a L<JS::YUI::Loader::Item> for <component> using the current filter setting of the loader (-min, -debug, etc.)
+
+=cut
 
 sub item {
     my $self = shift;
@@ -261,11 +346,23 @@ sub item {
     return $self->catalog->item([ $name => $self->filter ]);
 }
 
+=head2 item_path( <component> )
+
+Return the item path for <component> using the current filter setting of the loader (-min, -debug, etc.)
+
+=cut
+
 sub item_path {
     my $self = shift;
     my $name = shift;
     return $self->item($name)->path;
 }
+
+=head2 item_file( <component> )
+
+Return the item file for <component> using the current filter setting of the loader (-min, -debug, etc.)
+
+=cut
 
 sub item_file {
     my $self = shift;
@@ -295,10 +392,48 @@ sub _html {
     return join $separator, @html;
 }
 
+=head2 html
+
+Generate and return a string containing HTML describing how to include components. For example, you can use this in the <head> section
+of a web page.
+
+If the loader has a cache, then it will attempt to generate URIs from the cache, otherwise it will use the source.
+
+Here is an example:
+
+    <link rel="stylesheet" href="http://example.com/assets/reset.css" type="text/css"/>
+    <link rel="stylesheet" href="http://example.com/assets/fonts.css" type="text/css"/>
+    <link rel="stylesheet" href="http://example.com/assets/base.css" type="text/css"/>
+    <script src="http://example.com/assets/yahoo.js" type="text/javascript"></script>
+    <script src="http://example.com/assets/dom.js" type="text/javascript"></script>
+    <script src="http://example.com/assets/event.js" type="text/javascript"></script>
+    <script src="http://example.com/assets/logger.js" type="text/javascript"></script>
+    <script src="http://example.com/assets/yuitest.js" type="text/javascript"></script>
+
+=cut
+
 sub html {
     my $self = shift;
     return $self->_html([ $self->list->uri ], @_);
 }
+
+=head2 source_html
+
+Generate and return a string containing HTML describing how to include components. For example, you can use this in the <head> section
+of a web page.
+
+Here is an example:
+
+    <link rel="stylesheet" href="http://example.com/assets/reset.css" type="text/css"/>
+    <link rel="stylesheet" href="http://example.com/assets/fonts.css" type="text/css"/>
+    <link rel="stylesheet" href="http://example.com/assets/base.css" type="text/css"/>
+    <script src="http://example.com/assets/yahoo.js" type="text/javascript"></script>
+    <script src="http://example.com/assets/dom.js" type="text/javascript"></script>
+    <script src="http://example.com/assets/event.js" type="text/javascript"></script>
+    <script src="http://example.com/assets/logger.js" type="text/javascript"></script>
+    <script src="http://example.com/assets/yuitest.js" type="text/javascript"></script>
+
+=cut
 
 sub source_html {
     my $self = shift;
@@ -379,97 +514,179 @@ sub _new_finish {
 
 =head1 YUI component catalog
 
-=head2 animation - Animation Utility (utility)
+=head2 animation
 
-=head2 autocomplete - AutoComplete Control (widget)
+Animation Utility (utility)
 
-=head2 base - Base CSS Package (css)
+=head2 autocomplete
 
-=head2 button - Button Control (widget)
+AutoComplete Control (widget)
 
-=head2 calendar - Calendar Control (widget)
+=head2 base
 
-=head2 charts - Charts Control (widget)
+Base CSS Package (css)
 
-=head2 colorpicker - Color Picker Control (widget)
+=head2 button
 
-=head2 connection - Connection Manager (utility)
+Button Control (widget)
 
-=head2 container - Container Family (widget)
+=head2 calendar
 
-=head2 containercore - Container Core (Module, Overlay) (widget)
+Calendar Control (widget)
 
-=head2 cookie - Cookie Utility (utility)
+=head2 charts
 
-=head2 datasource - DataSource Utility (utility)
+Charts Control (widget)
 
-=head2 datatable - DataTable Control (widget)
+=head2 colorpicker
 
-=head2 dom - Dom Collection (core)
+Color Picker Control (widget)
 
-=head2 dragdrop - Drag &amp; Drop Utility (utility)
+=head2 connection
 
-=head2 editor - Rich Text Editor (widget)
+Connection Manager (utility)
 
-=head2 element - Element Utility (utility)
+=head2 container
 
-=head2 event - Event Utility (core)
+Container Family (widget)
 
-=head2 fonts - Fonts CSS Package (css)
+=head2 containercore
 
-=head2 get - Get Utility (utility)
+Container Core (Module, Overlay) (widget)
 
-=head2 grids - Grids CSS Package (css)
+=head2 cookie
 
-=head2 history - Browser History Manager (utility)
+Cookie Utility (utility)
 
-=head2 imagecropper - ImageCropper Control (widget)
+=head2 datasource
 
-=head2 imageloader - ImageLoader Utility (utility)
+DataSource Utility (utility)
 
-=head2 json - JSON Utility (utility)
+=head2 datatable
 
-=head2 layout - Layout Manager (widget)
+DataTable Control (widget)
 
-=head2 logger - Logger Control (tool)
+=head2 dom
 
-=head2 menu - Menu Control (widget)
+Dom Collection (core)
 
-=head2 profiler - Profiler (tool)
+=head2 dragdrop
 
-=head2 profilerviewer - ProfilerViewer Control (tool)
+Drag &amp; Drop Utility (utility)
 
-=head2 reset - Reset CSS Package (css)
+=head2 editor
 
-=head2 reset_fonts - reset-fonts.css (rollup)
+Rich Text Editor (widget)
 
-=head2 reset_fonts_grids - reset-fonts-grids.css (rollup)
+=head2 element
 
-=head2 resize - Resize Utility (utility)
+Element Utility (utility)
 
-=head2 selector - Selector Utility (utility)
+=head2 event
 
-=head2 simpleeditor - Simple Editor (widget)
+Event Utility (core)
 
-=head2 slider - Slider Control (widget)
+=head2 fonts
 
-=head2 tabview - TabView Control (widget)
+Fonts CSS Package (css)
 
-=head2 treeview - TreeView Control (widget)
+=head2 get
 
-=head2 uploader - Uploader (widget)
+Get Utility (utility)
 
-=head2 utilities - utilities.js (rollup)
+=head2 grids
 
-=head2 yahoo - Yahoo Global Object (core)
+Grids CSS Package (css)
 
-=head2 yahoo_dom_event - yahoo-dom-event.js (rollup)
+=head2 history
 
-=head2 yuiloader - Loader Utility (utility)
+Browser History Manager (utility)
 
-=head2 yuiloader_dom_event - yuiloader-dom-event.js (rollup)
+=head2 imagecropper
 
-=head2 yuitest - YUI Test Utility (tool)
+ImageCropper Control (widget)
+
+=head2 imageloader
+
+ImageLoader Utility (utility)
+
+=head2 json
+
+JSON Utility (utility)
+
+=head2 layout
+
+Layout Manager (widget)
+
+=head2 logger
+
+Logger Control (tool)
+
+=head2 menu
+
+Menu Control (widget)
+
+=head2 profiler
+
+Profiler (tool)
+
+=head2 profilerviewer
+
+ProfilerViewer Control (tool)
+
+=head2 reset
+
+Reset CSS Package (css)
+
+=head2 reset_fonts
+
+=head2 reset_fonts_grids
+
+=head2 resize
+
+Resize Utility (utility)
+
+=head2 selector
+
+Selector Utility (utility)
+
+=head2 simpleeditor
+
+Simple Editor (widget)
+
+=head2 slider
+
+Slider Control (widget)
+
+=head2 tabview
+
+TabView Control (widget)
+
+=head2 treeview
+
+TreeView Control (widget)
+
+=head2 uploader
+
+Uploader (widget)
+
+=head2 utilities
+
+=head2 yahoo
+
+Yahoo Global Object (core)
+
+=head2 yahoo_dom_event
+
+=head2 yuiloader
+
+Loader Utility (utility)
+
+=head2 yuiloader_dom_event
+
+=head2 yuitest
+
+YUI Test Utility (tool)
 
 =cut
 
